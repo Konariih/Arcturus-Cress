@@ -3,7 +3,7 @@ package com.eu.habbo.networking.gameserver.handlers;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.messages.incoming.Incoming;
-import com.eu.habbo.messages.outgoing.handshake.PingComposer;
+import com.eu.habbo.messages.outgoing.handshake.PingMessageComposer;
 import com.eu.habbo.networking.gameserver.GameServerAttributes;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
@@ -94,12 +94,16 @@ public class IdleTimeoutHandler extends ChannelDuplexHandler {
         super.channelInactive(ctx);
     }
 
+
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        // check if its a pong message
+        /* check if its a pong message
+         * TODO: is it the right place to do it?
+         * how to handle it if you are using multi revision?
+         */
         if(msg instanceof ClientMessage) {
             ClientMessage packet = (ClientMessage) msg;
-            if(packet.getMessageId() == Incoming.PongEvent) {
+            if(packet.getMessageId() == Incoming.pongEvent) {
                 this.lastPongTime = System.nanoTime();
             }
         }
@@ -127,7 +131,7 @@ public class IdleTimeoutHandler extends ChannelDuplexHandler {
 
             GameClient client = ctx.channel().attr(GameServerAttributes.CLIENT).get();
             if (client != null) {
-                client.sendResponse(new PingComposer());
+                client.sendResponse(new PingMessageComposer());
             }
 
             pingScheduleFuture = ctx.executor().schedule(this, pingScheduleNanos, TimeUnit.NANOSECONDS);

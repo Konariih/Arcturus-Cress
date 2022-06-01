@@ -5,7 +5,7 @@ import com.eu.habbo.habbohotel.achievements.AchievementManager;
 import com.eu.habbo.habbohotel.games.GamePlayer;
 import com.eu.habbo.habbohotel.games.GameTeamColors;
 import com.eu.habbo.habbohotel.users.Habbo;
-import com.eu.habbo.messages.outgoing.rooms.FreezeLivesComposer;
+import com.eu.habbo.messages.outgoing.rooms.GamePlayerValueMessageComposer;
 
 public class FreezeGamePlayer extends GamePlayer {
     public boolean nextDiagonal;
@@ -38,7 +38,7 @@ public class FreezeGamePlayer extends GamePlayer {
     }
 
     @Override
-    public void addScore(int amount) {
+    public synchronized void addScore(int amount) {
         super.addScore(amount);
 
         if (amount > 0) {
@@ -50,7 +50,7 @@ public class FreezeGamePlayer extends GamePlayer {
     public void addLife() {
         if (this.lives < FreezeGame.MAX_LIVES) {
             this.lives++;
-            super.getHabbo().getHabboInfo().getCurrentRoom().sendComposer(new FreezeLivesComposer(this).compose());
+            super.getHabbo().getHabboInfo().getCurrentRoom().sendComposer(new GamePlayerValueMessageComposer(this).compose());
         }
     }
 
@@ -65,7 +65,7 @@ public class FreezeGamePlayer extends GamePlayer {
                 game.playerDies(this);
             }
         } else {
-            super.getHabbo().getHabboInfo().getCurrentRoom().sendComposer(new FreezeLivesComposer(this).compose());
+            super.getHabbo().getHabboInfo().getCurrentRoom().sendComposer(new GamePlayerValueMessageComposer(this).compose());
         }
     }
 
@@ -122,10 +122,7 @@ public class FreezeGamePlayer extends GamePlayer {
     }
 
     public boolean canGetFrozen() {
-        if (this.isFrozen() || this.isProtected())
-            return false;
-
-        return true;
+        return !this.isFrozen() && !this.isProtected();
     }
 
     public void addProtection() {

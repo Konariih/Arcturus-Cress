@@ -5,14 +5,14 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.WiredHandler;
-import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.messages.ServerMessage;
-import com.eu.habbo.messages.outgoing.hotelview.BonusRareComposer;
+import com.eu.habbo.messages.outgoing.hotelview.BonusRareInfoMessageComposer;
 import gnu.trove.procedure.TObjectProcedure;
 
 import java.sql.ResultSet;
@@ -67,17 +67,14 @@ public class WiredEffectGiveHotelviewBonusRarePoints extends InteractionWiredEff
     }
 
     @Override
-    public boolean saveData(ClientMessage packet, GameClient gameClient) {
-        packet.readInt();
-
+    public boolean saveData(WiredSettings settings, GameClient gameClient) {
         try {
-            this.amount = Integer.parseInt(packet.readString());
+            this.amount = Integer.parseInt(settings.getStringParam());
         } catch (Exception e) {
             return false;
         }
 
-        packet.readInt();
-        this.setDelay(packet.readInt());
+        this.setDelay(settings.getDelay());
 
         return true;
     }
@@ -96,7 +93,7 @@ public class WiredEffectGiveHotelviewBonusRarePoints extends InteractionWiredEff
 
         if (this.amount > 0) {
             habbo.getHabboInfo().addCurrencyAmount(Emulator.getConfig().getInt("hotelview.promotional.points.type"), this.amount);
-            habbo.getClient().sendResponse(new BonusRareComposer(habbo));
+            habbo.getClient().sendResponse(new BonusRareInfoMessageComposer(habbo));
         }
 
         return true;

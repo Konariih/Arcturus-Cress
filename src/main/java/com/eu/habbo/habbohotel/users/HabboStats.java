@@ -1,7 +1,7 @@
 package com.eu.habbo.habbohotel.users;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.campaign.calendar.CalendarRewardClaimed;
+import com.eu.habbo.habbohotel.campaign.CalendarRewardClaimed;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.achievements.Achievement;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
@@ -421,12 +421,7 @@ public class HabboStats implements Runnable {
     }
 
     public boolean hasGuild(int guildId) {
-        for (int i : this.guilds) {
-            if (i == guildId)
-                return true;
-        }
-
-        return false;
+        return this.guilds.contains(guildId);
     }
 
     public int getAchievementScore() {
@@ -782,6 +777,9 @@ public class HabboStats implements Runnable {
         }
     }
 
+    public TIntArrayList getIgnoredUsers() {
+        return this.ignoredUsers;
+    }
     public boolean userIgnored(int userId) {
         return this.ignoredUsers.contains(userId);
     }

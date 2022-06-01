@@ -4,6 +4,7 @@ import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessage;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessageBubbles;
@@ -11,9 +12,9 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.WiredHandler;
-import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.messages.ServerMessage;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserWhisperComposer;
+import com.eu.habbo.messages.incoming.wired.WiredSaveException;
+import com.eu.habbo.messages.outgoing.rooms.users.WhisperMessageComposer;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -49,12 +50,13 @@ public class WiredEffectMuteHabbo extends InteractionWiredEffect {
     }
 
     @Override
-    public boolean saveData(ClientMessage packet, GameClient gameClient) {
-        packet.readInt();
-        this.length = packet.readInt();
-        this.message = packet.readString();
-        packet.readInt();
-        this.setDelay(packet.readInt());
+    public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        if(settings.getIntParams().length < 1) throw new WiredSaveException("invalid data");
+
+        this.length = settings.getIntParams()[0];
+        this.message = settings.getStringParam();
+
+        this.setDelay(settings.getDelay());
 
         return true;
     }
@@ -72,7 +74,7 @@ public class WiredEffectMuteHabbo extends InteractionWiredEffect {
 
             room.muteHabbo(habbo, 60);
 
-            habbo.getClient().sendResponse(new RoomUserWhisperComposer(new RoomChatMessage(this.message.replace("%user%", habbo.getHabboInfo().getUsername()).replace("%online_count%", Emulator.getGameEnvironment().getHabboManager().getOnlineCount() + "").replace("%room_count%", Emulator.getGameEnvironment().getRoomManager().getActiveRooms().size() + ""), habbo, habbo, RoomChatMessageBubbles.WIRED)));
+            habbo.getClient().sendResponse(new WhisperMessageComposer(new RoomChatMessage(this.message.replace("%user%", habbo.getHabboInfo().getUsername()).replace("%online_count%", Emulator.getGameEnvironment().getHabboManager().getOnlineCount() + "").replace("%room_count%", Emulator.getGameEnvironment().getRoomManager().getActiveRooms().size() + ""), habbo, habbo, RoomChatMessageBubbles.WIRED)));
         }
 
         return true;

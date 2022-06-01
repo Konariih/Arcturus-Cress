@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredTrigger;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.permissions.Permission;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomChatMessage;
@@ -13,10 +14,9 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.WiredHandler;
-import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserWhisperComposer;
+import com.eu.habbo.messages.outgoing.rooms.users.WhisperMessageComposer;
 import com.eu.habbo.threading.runnables.RoomUnitKick;
 import gnu.trove.procedure.TObjectProcedure;
 
@@ -59,7 +59,7 @@ public class WiredEffectKickHabbo extends InteractionWiredEffect {
             room.giveEffect(habbo, 4, 2);
 
             if (!this.message.isEmpty())
-                habbo.getClient().sendResponse(new RoomUserWhisperComposer(new RoomChatMessage(this.message, habbo, habbo, RoomChatMessageBubbles.ALERT)));
+                habbo.getClient().sendResponse(new WhisperMessageComposer(new RoomChatMessage(this.message, habbo, habbo, RoomChatMessageBubbles.ALERT)));
 
             Emulator.getThreading().run(new RoomUnitKick(habbo, room, true), 2000);
 
@@ -148,11 +148,9 @@ public class WiredEffectKickHabbo extends InteractionWiredEffect {
     }
 
     @Override
-    public boolean saveData(ClientMessage packet, GameClient gameClient) throws WiredSaveException {
-        packet.readInt();
-        String message = packet.readString();
-        packet.readInt();
-        int delay = packet.readInt();
+    public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        String message = settings.getStringParam();
+        int delay = settings.getDelay();
 
         if(delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
             throw new WiredSaveException("Delay too long");

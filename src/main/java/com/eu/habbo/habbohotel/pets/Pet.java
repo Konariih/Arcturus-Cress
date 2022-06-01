@@ -2,25 +2,24 @@ package com.eu.habbo.habbohotel.pets;
 
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.achievements.AchievementManager;
+import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetTree;
 import com.eu.habbo.habbohotel.rooms.*;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.messages.ISerialize;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.outgoing.rooms.pets.PetLevelUpdatedComposer;
-import com.eu.habbo.messages.outgoing.rooms.pets.RoomPetExperienceComposer;
-import com.eu.habbo.messages.outgoing.rooms.pets.RoomPetRespectComposer;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserRemoveComposer;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserTalkComposer;
+import com.eu.habbo.messages.outgoing.rooms.pets.PetExperienceComposer;
+import com.eu.habbo.messages.outgoing.rooms.pets.PetRespectNotificationComposer;
+import com.eu.habbo.messages.outgoing.rooms.users.UserRemoveMessageComposer;
+import com.eu.habbo.messages.outgoing.rooms.users.ChatMessageComposer;
 import com.eu.habbo.plugin.events.pets.PetTalkEvent;
 import gnu.trove.map.hash.THashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
-import java.util.Calendar;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
 public class Pet implements ISerialize, Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(Pet.class);
@@ -109,7 +108,7 @@ public class Pet implements ISerialize, Runnable {
             RoomChatMessage chatMessage = new RoomChatMessage(message, this.roomUnit, RoomChatMessageBubbles.NORMAL);
             PetTalkEvent talkEvent = new PetTalkEvent(this, chatMessage);
             if (!Emulator.getPluginManager().fireEvent(talkEvent).isCancelled()) {
-                this.room.petChat(new RoomUserTalkComposer(chatMessage).compose());
+                this.room.petChat(new ChatMessageComposer(chatMessage).compose());
             }
         }
     }
@@ -124,13 +123,15 @@ public class Pet implements ISerialize, Runnable {
     public void addEnergy(int amount) {
         this.energy += amount;
 
+        /* this is regeneration, add back if needed, deleted when other stuff done
         if (this.energy > PetManager.maxEnergy(this.level))
             this.energy = PetManager.maxEnergy(this.level);
+        */
 
+        // never negative energy
         if (this.energy < 0)
             this.energy = 0;
     }
-
 
     public void addHappyness(int amount) {
         this.happyness += amount;
@@ -254,7 +255,7 @@ public class Pet implements ISerialize, Runnable {
                     if (this.levelThirst > 0)
                         this.levelThirst--;
 
-                    this.addEnergy(5);
+                   //this.addEnergy(5);
 
                     this.addHappyness(1);
 
@@ -266,7 +267,8 @@ public class Pet implements ISerialize, Runnable {
                         this.roomUnit.setStatus(RoomUnitStatus.GESTURE, PetGestures.ENERGY.getKey());
                         this.gestureTickTimeout = time;
                     }
-                } else if (this.tickTimeout >= 5) {
+                } /* this is regeneration, add back if needed
+                else if (this.tickTimeout >= 5) {
                     if (this.levelHunger < 100)
                         this.levelHunger++;
 
@@ -278,6 +280,7 @@ public class Pet implements ISerialize, Runnable {
 
                     this.tickTimeout = time;
                 }
+                */
 
                 if (this.task == PetTasks.STAY && Emulator.getIntUnixTimestamp() - this.stayStartedAt >= 120) {
                     this.task = null;
@@ -289,6 +292,7 @@ public class Pet implements ISerialize, Runnable {
 
                 if (this.energy >= 2)
                     this.addEnergy(-1);
+
 
                 if (this.levelHunger < 100)
                     this.levelHunger++;
@@ -390,9 +394,7 @@ public class Pet implements ISerialize, Runnable {
             keys.put(RoomUnitStatus.GESTURE, this.roomUnit.getStatus(RoomUnitStatus.GESTURE));
 
         if (this.task == null) {
-            boolean isDead = false;
-            if (this.roomUnit.hasStatus(RoomUnitStatus.RIP))
-                isDead = true;
+            boolean isDead = this.roomUnit.hasStatus(RoomUnitStatus.RIP);
 
             this.roomUnit.clearStatus();
 
@@ -461,12 +463,19 @@ public class Pet implements ISerialize, Runnable {
     }
 
 
-    public void drink() {
+    public boolean drink() {
         HabboItem item = this.petData.randomDrinkItem(this.room.getRoomSpecialTypes().getPetDrinks());
         if (item != null) {
             this.roomUnit.setCanWalk(true);
-            this.roomUnit.setGoalLocation(this.room.getLayout().getTile(item.getX(), item.getY()));
+            if (this.getRoomUnit().getCurrentLocation().distance(this.room.getLayout().getTile(item.getX(), item.getY())) == 0) {
+                try {
+                    item.onWalkOn(this.getRoomUnit(), this.getRoom(), null);
+                } catch (Exception ignored) {}
+            } else {
+                this.roomUnit.setGoalLocation(this.room.getLayout().getTile(item.getX(), item.getY()));
+            }
         }
+        return item != null;
     }
 
 
@@ -481,16 +490,41 @@ public class Pet implements ISerialize, Runnable {
     }
 
 
-    public void findToy() {
+    public boolean findToy() {
         HabboItem item = this.petData.randomToyItem(this.room.getRoomSpecialTypes().getPetToys());
         {
             if (item != null) {
                 this.roomUnit.setCanWalk(true);
+                if (this.getRoomUnit().getCurrentLocation().distance(this.room.getLayout().getTile(item.getX(), item.getY())) == 0) {
+                    try {
+                        item.onWalkOn(this.getRoomUnit(), this.getRoom(), null);
+                    } catch (Exception ignored) {}
+                    return true;
+                }
                 this.roomUnit.setGoalLocation(this.room.getLayout().getTile(item.getX(), item.getY()));
+                return true;
             }
         }
+        return false;
     }
 
+    public boolean findPetItem(PetTasks task, Class<? extends HabboItem> type) {
+        HabboItem item = this.petData.randomToyHabboItem(this.room.getRoomSpecialTypes().getItemsOfType(type));
+
+            if (item != null) {
+                this.roomUnit.setCanWalk(true);
+                this.setTask(task);
+                if (this.getRoomUnit().getCurrentLocation().distance(this.room.getLayout().getTile(item.getX(), item.getY())) == 0) {
+                       try {
+                            item.onWalkOn(this.getRoomUnit(), this.getRoom(), null);
+                        } catch (Exception ignored) {}
+                       return true;
+                }
+                this.roomUnit.setGoalLocation(this.room.getLayout().getTile(item.getX(), item.getY()));
+                return true;
+            }
+        return false;
+    }
 
     public void randomHappyAction() {
         if (this.petData.actionsHappy.length > 0) {
@@ -517,7 +551,7 @@ public class Pet implements ISerialize, Runnable {
         this.experience += amount;
 
         if (this.room != null) {
-            this.room.sendComposer(new RoomPetExperienceComposer(this, amount).compose());
+            this.room.sendComposer(new PetExperienceComposer(this, amount).compose());
 
             if(this.level < PetManager.experiences.length + 1 && this.experience >= PetManager.experiences[this.level - 1]) {
                 this.levelUp();
@@ -582,7 +616,7 @@ public class Pet implements ISerialize, Runnable {
 
         if (habbo != null) {
             habbo.getHabboStats().petRespectPointsToGive--;
-            habbo.getHabboInfo().getCurrentRoom().sendComposer(new RoomPetRespectComposer(this).compose());
+            habbo.getHabboInfo().getCurrentRoom().sendComposer(new PetRespectNotificationComposer(this).compose());
 
             AchievementManager.progressAchievement(habbo, Emulator.getGameEnvironment().getAchievementManager().getAchievement("PetRespectGiver"));
         }
@@ -738,7 +772,7 @@ public class Pet implements ISerialize, Runnable {
         }
 
         if (!dontSendPackets) {
-            room.sendComposer(new RoomUserRemoveComposer(this.roomUnit).compose());
+            room.sendComposer(new UserRemoveMessageComposer(this.roomUnit).compose());
             room.removePet(this.id);
         }
 

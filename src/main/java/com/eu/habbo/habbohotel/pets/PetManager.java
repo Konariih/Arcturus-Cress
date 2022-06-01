@@ -3,10 +3,7 @@ package com.eu.habbo.habbohotel.pets;
 import com.eu.habbo.Emulator;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
-import com.eu.habbo.habbohotel.items.interactions.pets.InteractionNest;
-import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetDrink;
-import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetFood;
-import com.eu.habbo.habbohotel.items.interactions.pets.InteractionPetToy;
+import com.eu.habbo.habbohotel.items.interactions.pets.*;
 import com.eu.habbo.habbohotel.pets.actions.*;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
@@ -18,6 +15,7 @@ import gnu.trove.map.hash.TIntIntHashMap;
 import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.procedure.TIntObjectProcedure;
 import gnu.trove.set.hash.THashSet;
+import org.apache.commons.lang3.EnumUtils;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +50,10 @@ public class PetManager {
             this.put(15, new ActionFollowLeft());
             this.put(16, new ActionFollowRight());
             this.put(17, new ActionPlayFootball());
+            this.put(19, new ActionBounce());
+            this.put(20, new ActionFlat());
+            this.put(21, new ActionDance());
+            this.put(22, new ActionSpin());
             this.put(24, new ActionMoveForward());
             this.put(25, new ActionTurnLeft());
             this.put(26, new ActionTurnRight());
@@ -59,10 +61,16 @@ public class PetManager {
             this.put(28, new ActionCroak());
             this.put(29, new ActionDip());
             this.put(30, new ActionWave());
+            this.put(31, new ActionDance());
             this.put(35, new ActionWings());
             this.put(36, new ActionBreatheFire());
+            this.put(37, new ActionHang());
             this.put(38, new ActionTorch());
+            this.put(40, new ActionSwing());
+            this.put(41, new ActionRoll());
+            this.put(42, new ActionRingOfFire());
             this.put(43, new ActionEat());
+            this.put(44, new ActionWagTail());
             this.put(46, new ActionBreed());
 
         }
@@ -135,7 +143,7 @@ public class PetManager {
     }
 
     public static NormalDistribution getNormalDistributionForBreeding(int levelOne, int levelTwo) {
-        return getNormalDistributionForBreeding((levelOne + levelTwo) / 2);
+        return getNormalDistributionForBreeding( (levelOne + levelTwo) / 2.0);
     }
 
     public static NormalDistribution getNormalDistributionForBreeding(double avgLevel) {
@@ -201,7 +209,7 @@ public class PetManager {
                             PetData.generalFoodItems.add(baseItem);
                         else if (baseItem.getInteractionType().getType() == InteractionPetDrink.class)
                             PetData.generalDrinkItems.add(baseItem);
-                        else if (baseItem.getInteractionType().getType() == InteractionPetToy.class)
+                        else if (baseItem.getInteractionType().getType() == InteractionPetToy.class || baseItem.getInteractionType().getType() == InteractionPetTree.class || baseItem.getInteractionType().getType() == InteractionPetTrampoline.class)
                             PetData.generalToyItems.add(baseItem);
                     } else {
                         PetData data = this.getPetData(set.getInt("pet_id"));
@@ -213,7 +221,7 @@ public class PetManager {
                                 data.addFoodItem(baseItem);
                             else if (baseItem.getInteractionType().getType() == InteractionPetDrink.class)
                                 data.addDrinkItem(baseItem);
-                            else if (baseItem.getInteractionType().getType() == InteractionPetToy.class)
+                            else if (baseItem.getInteractionType().getType() == InteractionPetToy.class || baseItem.getInteractionType().getType() == InteractionPetTree.class || baseItem.getInteractionType().getType() == InteractionPetTrampoline.class)
                                 data.addToyItem(baseItem);
                         }
                     }
@@ -229,7 +237,7 @@ public class PetManager {
             while (set.next()) {
                 if (set.getInt("pet_id") >= 0) {
                     if (this.petData.containsKey(set.getInt("pet_id"))) {
-                        PetVocalsType petVocalsType = PetVocalsType.valueOf(set.getString("type").toUpperCase());
+                        PetVocalsType petVocalsType = EnumUtils.getEnum(PetVocalsType.class, set.getString("type").toUpperCase());;
 
                         if (petVocalsType != null) {
                             this.petData.get(set.getInt("pet_id")).petVocals.get(petVocalsType).add(new PetVocal(set.getString("message")));
@@ -308,7 +316,7 @@ public class PetManager {
         }
 
         try {
-            int petId = Integer.valueOf(petName.split("t")[1]);
+            int petId = Integer.parseInt(petName.split("t")[1]);
             return this.petRaces.get(petId);
         } catch (Exception e) {
             LOGGER.error("Caught exception", e);
@@ -326,18 +334,15 @@ public class PetManager {
 
         TIntObjectHashMap<ArrayList<PetBreedingReward>> offspringList = this.breedingReward.get(pet.getPetData().getType());
 
-        offspringList.forEachEntry(new TIntObjectProcedure<ArrayList<PetBreedingReward>>() {
-            @Override
-            public boolean execute(int i, ArrayList<PetBreedingReward> petBreedingRewards) {
-                for (PetBreedingReward reward : petBreedingRewards) {
-                    if (reward.breed == pet.getRace()) {
-                        rarityLevel[0] = i;
-                        return false;
-                    }
+        offspringList.forEachEntry((i, petBreedingRewards) -> {
+            for (PetBreedingReward reward : petBreedingRewards) {
+                if (reward.breed == pet.getRace()) {
+                    rarityLevel[0] = i;
+                    return false;
                 }
-
-                return true;
             }
+
+            return true;
         });
 
         return 4 - rarityLevel[0];
@@ -392,17 +397,17 @@ public class PetManager {
     }
 
     public Pet createPet(Item item, String name, String race, String color, GameClient client) {
-        int type = Integer.valueOf(item.getName().toLowerCase().replace("a0 pet", ""));
+        int type = Integer.parseInt(item.getName().toLowerCase().replace("a0 pet", ""));
 
         if (this.petData.containsKey(type)) {
             Pet pet;
             if (type == 15)
-                pet = new HorsePet(type, Integer.valueOf(race), color, name, client.getHabbo().getHabboInfo().getId());
+                pet = new HorsePet(type, Integer.parseInt(race), color, name, client.getHabbo().getHabboInfo().getId());
             else if (type == 16)
                 pet = this.createMonsterplant(null, client.getHabbo(), false, null, 0);
             else
                 pet = new Pet(type,
-                        Integer.valueOf(race),
+                        Integer.parseInt(race),
                         color,
                         name,
                         client.getHabbo().getHabboInfo().getId()

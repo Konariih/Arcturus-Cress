@@ -5,6 +5,7 @@ import com.eu.habbo.habbohotel.bots.Bot;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
 import com.eu.habbo.habbohotel.items.Item;
 import com.eu.habbo.habbohotel.items.interactions.InteractionWiredEffect;
+import com.eu.habbo.habbohotel.items.interactions.wired.WiredSettings;
 import com.eu.habbo.habbohotel.rooms.Room;
 import com.eu.habbo.habbohotel.rooms.RoomTile;
 import com.eu.habbo.habbohotel.rooms.RoomTileState;
@@ -12,10 +13,9 @@ import com.eu.habbo.habbohotel.rooms.RoomUnit;
 import com.eu.habbo.habbohotel.users.HabboItem;
 import com.eu.habbo.habbohotel.wired.WiredEffectType;
 import com.eu.habbo.habbohotel.wired.WiredHandler;
-import com.eu.habbo.messages.ClientMessage;
 import com.eu.habbo.messages.ServerMessage;
 import com.eu.habbo.messages.incoming.wired.WiredSaveException;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserEffectComposer;
+import com.eu.habbo.messages.outgoing.rooms.users.AvatarEffectMessageComposer;
 import com.eu.habbo.threading.runnables.RoomUnitTeleport;
 import com.eu.habbo.threading.runnables.SendRoomUnitEffectComposer;
 import gnu.trove.set.hash.THashSet;
@@ -25,7 +25,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class WiredEffectBotTeleport extends InteractionWiredEffect {
     public static final WiredEffectType type = WiredEffectType.BOT_TELEPORT;
@@ -56,8 +55,8 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
         // makes a temporary effect
 
         roomUnit.getRoom().unIdle(roomUnit.getRoom().getHabbo(roomUnit));
-        room.sendComposer(new RoomUserEffectComposer(roomUnit, 4).compose());
-        Emulator.getThreading().run(new SendRoomUnitEffectComposer(room, roomUnit), WiredHandler.TELEPORT_DELAY + 1000);
+        room.sendComposer(new AvatarEffectMessageComposer(roomUnit, 4).compose());
+        Emulator.getThreading().run(new SendRoomUnitEffectComposer(room, roomUnit), (long) WiredHandler.TELEPORT_DELAY + 1000);
 
         if (tile == roomUnit.getCurrentLocation()) {
             return;
@@ -114,10 +113,9 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
     }
 
     @Override
-    public boolean saveData(ClientMessage packet, GameClient gameClient) throws WiredSaveException {
-        packet.readInt();
-        String botName = packet.readString();
-        int itemsCount = packet.readInt();
+    public boolean saveData(WiredSettings settings, GameClient gameClient) throws WiredSaveException {
+        String botName = settings.getStringParam();
+        int itemsCount = settings.getFurniIds().length;
 
         if(itemsCount > Emulator.getConfig().getInt("hotel.wired.furni.selection.count")) {
             throw new WiredSaveException("Too many furni selected");
@@ -126,7 +124,7 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
         List<HabboItem> newItems = new ArrayList<>();
 
         for (int i = 0; i < itemsCount; i++) {
-            int itemId = packet.readInt();
+            int itemId = settings.getFurniIds()[i];
             HabboItem it = Emulator.getGameEnvironment().getRoomManager().getRoom(this.getRoomId()).getHabboItem(itemId);
 
             if(it == null)
@@ -135,7 +133,7 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
             newItems.add(it);
         }
 
-        int delay = packet.readInt();
+        int delay = settings.getDelay();
 
         if(delay > Emulator.getConfig().getInt("hotel.wired.max_delay", 20))
             throw new WiredSaveException("Delay too long");
@@ -220,14 +218,14 @@ public class WiredEffectBotTeleport extends InteractionWiredEffect {
             String[] wiredDataSplit = set.getString("wired_data").split("\t");
 
             if (wiredDataSplit.length >= 2) {
-                this.setDelay(Integer.valueOf(wiredDataSplit[0]));
+                this.setDelay(Integer.parseInt(wiredDataSplit[0]));
                 String[] data = wiredDataSplit[1].split(";");
 
                 if (data.length > 1) {
                     this.botName = data[0];
 
                     for (int i = 1; i < data.length; i++) {
-                        HabboItem item = room.getHabboItem(Integer.valueOf(data[i]));
+                        HabboItem item = room.getHabboItem(Integer.parseInt(data[i]));
 
                         if (item != null)
                             this.items.add(item);

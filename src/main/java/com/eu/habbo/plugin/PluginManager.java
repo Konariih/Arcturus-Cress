@@ -25,20 +25,19 @@ import com.eu.habbo.habbohotel.users.clothingvalidation.ClothingValidationManage
 import com.eu.habbo.habbohotel.users.HabboInventory;
 import com.eu.habbo.habbohotel.users.HabboManager;
 import com.eu.habbo.habbohotel.users.subscriptions.SubscriptionHabboClub;
-import com.eu.habbo.habbohotel.users.subscriptions.SubscriptionManager;
 import com.eu.habbo.habbohotel.wired.WiredHandler;
 import com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager;
 import com.eu.habbo.messages.PacketManager;
-import com.eu.habbo.messages.incoming.camera.CameraPublishToWebEvent;
-import com.eu.habbo.messages.incoming.camera.CameraPurchaseEvent;
-import com.eu.habbo.messages.incoming.catalog.CheckPetNameEvent;
-import com.eu.habbo.messages.incoming.floorplaneditor.FloorPlanEditorSaveEvent;
-import com.eu.habbo.messages.incoming.hotelview.HotelViewRequestLTDAvailabilityEvent;
-import com.eu.habbo.messages.incoming.rooms.promotions.BuyRoomPromotionEvent;
-import com.eu.habbo.messages.incoming.users.ChangeNameCheckUsernameEvent;
-import com.eu.habbo.messages.outgoing.catalog.DiscountComposer;
-import com.eu.habbo.messages.outgoing.catalog.GiftConfigurationComposer;
-import com.eu.habbo.messages.outgoing.navigator.NewNavigatorEventCategoriesComposer;
+import com.eu.habbo.messages.incoming.camera.PublishPhotoEvent;
+import com.eu.habbo.messages.incoming.camera.PurchasePhotoEvent;
+import com.eu.habbo.messages.incoming.catalog.ApproveNameEvent;
+import com.eu.habbo.messages.incoming.floorplaneditor.UpdateFloorPropertiesEvent;
+import com.eu.habbo.messages.incoming.hotelview.GetLimitedOfferAppearingNextEvent;
+import com.eu.habbo.messages.incoming.rooms.promotions.PurchaseRoomAdEvent;
+import com.eu.habbo.messages.incoming.users.CheckUserNameEvent;
+import com.eu.habbo.messages.outgoing.catalog.BundleDiscountRulesetMessageComposer;
+import com.eu.habbo.messages.outgoing.catalog.GiftWrappingConfigurationComposer;
+import com.eu.habbo.messages.outgoing.navigator.UserEventCatsComposer;
 import com.eu.habbo.plugin.events.emulator.EmulatorConfigUpdatedEvent;
 import com.eu.habbo.plugin.events.emulator.EmulatorLoadedEvent;
 import com.eu.habbo.plugin.events.roomunit.RoomUnitLookAtPointEvent;
@@ -89,11 +88,11 @@ public class PluginManager {
         RoomTrade.TRADING_ENABLED = Emulator.getConfig().getBoolean("hotel.trading.enabled") && !ShutdownEmulator.instantiated;
         RoomTrade.TRADING_REQUIRES_PERK = Emulator.getConfig().getBoolean("hotel.trading.requires.perk");
         WordFilter.ENABLED_FRIENDCHAT = Emulator.getConfig().getBoolean("hotel.wordfilter.messenger");
-        DiscountComposer.MAXIMUM_ALLOWED_ITEMS = Emulator.getConfig().getInt("discount.max.allowed.items", 100);
-        DiscountComposer.DISCOUNT_BATCH_SIZE = Emulator.getConfig().getInt("discount.batch.size", 6);
-        DiscountComposer.DISCOUNT_AMOUNT_PER_BATCH = Emulator.getConfig().getInt("discount.batch.free.items", 1);
-        DiscountComposer.MINIMUM_DISCOUNTS_FOR_BONUS = Emulator.getConfig().getInt("discount.bonus.min.discounts", 1);
-        DiscountComposer.ADDITIONAL_DISCOUNT_THRESHOLDS = Arrays.stream(Emulator.getConfig().getValue("discount.additional.thresholds", "40;99").split(";")).mapToInt(Integer::parseInt).toArray();
+        BundleDiscountRulesetMessageComposer.MAXIMUM_ALLOWED_ITEMS = Emulator.getConfig().getInt("discount.max.allowed.items", 100);
+        BundleDiscountRulesetMessageComposer.DISCOUNT_BATCH_SIZE = Emulator.getConfig().getInt("discount.batch.size", 6);
+        BundleDiscountRulesetMessageComposer.DISCOUNT_AMOUNT_PER_BATCH = Emulator.getConfig().getInt("discount.batch.free.items", 1);
+        BundleDiscountRulesetMessageComposer.MINIMUM_DISCOUNTS_FOR_BONUS = Emulator.getConfig().getInt("discount.bonus.min.discounts", 1);
+        BundleDiscountRulesetMessageComposer.ADDITIONAL_DISCOUNT_THRESHOLDS = Arrays.stream(Emulator.getConfig().getValue("discount.additional.thresholds", "40;99").split(";")).mapToInt(Integer::parseInt).toArray();
 
         BotManager.MINIMUM_CHAT_SPEED = Emulator.getConfig().getInt("hotel.bot.chat.minimum.interval");
         BotManager.MAXIMUM_CHAT_LENGTH = Emulator.getConfig().getInt("hotel.bot.max.chatlength");
@@ -135,14 +134,14 @@ public class PluginManager {
 
         HabboManager.WELCOME_MESSAGE = Emulator.getConfig().getValue("hotel.welcome.alert.message").replace("<br>", "<br/>").replace("<br />", "<br/>").replace("\\r", "\r").replace("\\n", "\n").replace("\\t", "\t");
         Room.PREFIX_FORMAT = Emulator.getConfig().getValue("room.chat.prefix.format");
-        FloorPlanEditorSaveEvent.MAXIMUM_FLOORPLAN_WIDTH_LENGTH = Emulator.getConfig().getInt("hotel.floorplan.max.widthlength");
-        FloorPlanEditorSaveEvent.MAXIMUM_FLOORPLAN_SIZE = Emulator.getConfig().getInt("hotel.floorplan.max.totalarea");
+        UpdateFloorPropertiesEvent.MAXIMUM_FLOORPLAN_WIDTH_LENGTH = Emulator.getConfig().getInt("hotel.floorplan.max.widthlength");
+        UpdateFloorPropertiesEvent.MAXIMUM_FLOORPLAN_SIZE = Emulator.getConfig().getInt("hotel.floorplan.max.totalarea");
 
-        HotelViewRequestLTDAvailabilityEvent.ENABLED = Emulator.getConfig().getBoolean("hotel.view.ltdcountdown.enabled");
-        HotelViewRequestLTDAvailabilityEvent.TIMESTAMP = Emulator.getConfig().getInt("hotel.view.ltdcountdown.timestamp");
-        HotelViewRequestLTDAvailabilityEvent.ITEM_ID = Emulator.getConfig().getInt("hotel.view.ltdcountdown.itemid");
-        HotelViewRequestLTDAvailabilityEvent.PAGE_ID = Emulator.getConfig().getInt("hotel.view.ltdcountdown.pageid");
-        HotelViewRequestLTDAvailabilityEvent.ITEM_NAME = Emulator.getConfig().getValue("hotel.view.ltdcountdown.itemname");
+        GetLimitedOfferAppearingNextEvent.ENABLED = Emulator.getConfig().getBoolean("hotel.view.ltdcountdown.enabled");
+        GetLimitedOfferAppearingNextEvent.TIMESTAMP = Emulator.getConfig().getInt("hotel.view.ltdcountdown.timestamp");
+        GetLimitedOfferAppearingNextEvent.ITEM_ID = Emulator.getConfig().getInt("hotel.view.ltdcountdown.itemid");
+        GetLimitedOfferAppearingNextEvent.PAGE_ID = Emulator.getConfig().getInt("hotel.view.ltdcountdown.pageid");
+        GetLimitedOfferAppearingNextEvent.ITEM_NAME = Emulator.getConfig().getValue("hotel.view.ltdcountdown.itemname");
         InteractionPostIt.STICKYPOLE_PREFIX_TEXT = Emulator.getConfig().getValue("hotel.room.stickypole.prefix");
         TargetOffer.ACTIVE_TARGET_OFFER_ID = Emulator.getConfig().getInt("hotel.targetoffer.id");
         WordFilter.DEFAULT_REPLACEMENT = Emulator.getConfig().getValue("hotel.wordfilter.replacement");
@@ -151,18 +150,18 @@ public class PluginManager {
         AchievementManager.TALENTTRACK_ENABLED = Emulator.getConfig().getBoolean("hotel.talenttrack.enabled");
         InteractionRoller.NO_RULES = Emulator.getConfig().getBoolean("hotel.room.rollers.norules");
         RoomManager.SHOW_PUBLIC_IN_POPULAR_TAB = Emulator.getConfig().getBoolean("hotel.navigator.populartab.publics");
-        CheckPetNameEvent.PET_NAME_LENGTH_MINIMUM = Emulator.getConfig().getInt("hotel.pets.name.length.min");
-        CheckPetNameEvent.PET_NAME_LENGTH_MAXIMUM = Emulator.getConfig().getInt("hotel.pets.name.length.max");
+        ApproveNameEvent.PET_NAME_LENGTH_MINIMUM = Emulator.getConfig().getInt("hotel.pets.name.length.min");
+        ApproveNameEvent.PET_NAME_LENGTH_MAXIMUM = Emulator.getConfig().getInt("hotel.pets.name.length.max");
 
 
-        ChangeNameCheckUsernameEvent.VALID_CHARACTERS = Emulator.getConfig().getValue("allowed.username.characters", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-=!?@:,.");
-        CameraPublishToWebEvent.CAMERA_PUBLISH_POINTS = Emulator.getConfig().getInt("camera.price.points.publish", 5);
-        CameraPublishToWebEvent.CAMERA_PUBLISH_POINTS_TYPE = Emulator.getConfig().getInt("camera.price.points.publish.type", 0);
-        CameraPurchaseEvent.CAMERA_PURCHASE_CREDITS = Emulator.getConfig().getInt("camera.price.credits", 5);
-        CameraPurchaseEvent.CAMERA_PURCHASE_POINTS = Emulator.getConfig().getInt("camera.price.points", 5);
-        CameraPurchaseEvent.CAMERA_PURCHASE_POINTS_TYPE = Emulator.getConfig().getInt("camera.price.points.type", 0);
+        CheckUserNameEvent.VALID_CHARACTERS = Emulator.getConfig().getValue("allowed.username.characters", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-=!?@:,.");
+        PublishPhotoEvent.CAMERA_PUBLISH_POINTS = Emulator.getConfig().getInt("camera.price.points.publish", 5);
+        PublishPhotoEvent.CAMERA_PUBLISH_POINTS_TYPE = Emulator.getConfig().getInt("camera.price.points.publish.type", 0);
+        PurchasePhotoEvent.CAMERA_PURCHASE_CREDITS = Emulator.getConfig().getInt("camera.price.credits", 5);
+        PurchasePhotoEvent.CAMERA_PURCHASE_POINTS = Emulator.getConfig().getInt("camera.price.points", 5);
+        PurchasePhotoEvent.CAMERA_PURCHASE_POINTS_TYPE = Emulator.getConfig().getInt("camera.price.points.type", 0);
 
-        BuyRoomPromotionEvent.ROOM_PROMOTION_BADGE = Emulator.getConfig().getValue("room.promotion.badge", "RADZZ");
+        PurchaseRoomAdEvent.ROOM_PROMOTION_BADGE = Emulator.getConfig().getValue("room.promotion.badge", "RADZZ");
         BotManager.MAXIMUM_BOT_INVENTORY_SIZE = Emulator.getConfig().getInt("hotel.bots.max.inventory");
         PetManager.MAXIMUM_PET_INVENTORY_SIZE = Emulator.getConfig().getInt("hotel.pets.max.inventory");
 
@@ -213,18 +212,18 @@ public class PluginManager {
         }
 
 
-        NewNavigatorEventCategoriesComposer.CATEGORIES.clear();
+        UserEventCatsComposer.CATEGORIES.clear();
         for (String category : Emulator.getConfig().getValue("navigator.eventcategories", "").split(";")) {
             try {
-                NewNavigatorEventCategoriesComposer.CATEGORIES.add(new EventCategory(category));
+                UserEventCatsComposer.CATEGORIES.add(new EventCategory(category));
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
         if (Emulator.isReady) {
-            GiftConfigurationComposer.BOX_TYPES = Arrays.stream(Emulator.getConfig().getValue("hotel.gifts.box_types").split(",")).mapToInt(Integer::parseInt).boxed().collect(Collectors.toList());
-            GiftConfigurationComposer.RIBBON_TYPES = Arrays.stream(Emulator.getConfig().getValue("hotel.gifts.ribbon_types").split(",")).mapToInt(Integer::parseInt).boxed().collect(Collectors.toList());
+            GiftWrappingConfigurationComposer.BOX_TYPES = Arrays.stream(Emulator.getConfig().getValue("hotel.gifts.box_types").split(",")).mapToInt(Integer::parseInt).boxed().collect(Collectors.toList());
+            GiftWrappingConfigurationComposer.RIBBON_TYPES = Arrays.stream(Emulator.getConfig().getValue("hotel.gifts.ribbon_types").split(",")).mapToInt(Integer::parseInt).boxed().collect(Collectors.toList());
 
             Emulator.getGameEnvironment().getCreditsScheduler().reloadConfig();
             Emulator.getGameEnvironment().getPointsScheduler().reloadConfig();

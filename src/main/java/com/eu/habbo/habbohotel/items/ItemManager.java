@@ -51,7 +51,7 @@ import com.eu.habbo.habbohotel.wired.highscores.WiredHighscoreManager;
 import com.eu.habbo.habbohotel.items.interactions.wired.triggers.*;
 import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboItem;
-import com.eu.habbo.messages.outgoing.inventory.AddHabboItemComposer;
+import com.eu.habbo.messages.outgoing.inventory.UnseenItemsComposer;
 import com.eu.habbo.plugin.events.emulator.EmulatorLoadItemsManagerEvent;
 import com.eu.habbo.threading.runnables.QueryDeleteHabboItem;
 import gnu.trove.TCollections;
@@ -133,6 +133,8 @@ public class ItemManager {
         this.interactionsList.add(new ItemInteraction("pet_drink", InteractionPetDrink.class));
         this.interactionsList.add(new ItemInteraction("pet_food", InteractionPetFood.class));
         this.interactionsList.add(new ItemInteraction("pet_toy", InteractionPetToy.class));
+        this.interactionsList.add(new ItemInteraction("pet_tree", InteractionPetTree.class));
+        this.interactionsList.add(new ItemInteraction("pet_trampoline", InteractionPetTrampoline.class));
         this.interactionsList.add(new ItemInteraction("breeding_nest", InteractionPetBreedingNest.class));
         this.interactionsList.add(new ItemInteraction("obstacle", InteractionObstacle.class));
         this.interactionsList.add(new ItemInteraction("monsterplant_seed", InteractionMonsterPlantSeed.class));
@@ -730,7 +732,7 @@ public class ItemManager {
             Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(userId);
             if (habbo != null) {
                 habbo.getInventory().getItemsComponent().addItem(gift);
-                habbo.getClient().sendResponse(new AddHabboItemComposer(gift));
+                habbo.getClient().sendResponse(new UnseenItemsComposer(gift));
             }
         }
 

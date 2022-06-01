@@ -1,13 +1,12 @@
 package com.eu.habbo.habbohotel.commands;
 
 import com.eu.habbo.Emulator;
-import com.eu.habbo.habbohotel.campaign.calendar.CalendarCampaign;
+import com.eu.habbo.habbohotel.campaign.CalendarCampaign;
 import com.eu.habbo.habbohotel.gameclients.GameClient;
-import com.eu.habbo.messages.outgoing.events.calendar.AdventCalendarDataComposer;
-import com.eu.habbo.messages.outgoing.habboway.nux.NuxAlertComposer;
+import com.eu.habbo.messages.outgoing.events.calendar.CampaignCalendarDataMessageComposer;
+import com.eu.habbo.messages.outgoing.habboway.nux.InClientLinkMessageComposer;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.Date;
 
 import static java.time.temporal.ChronoUnit.DAYS;
@@ -22,14 +21,19 @@ public class CalendarCommand extends Command {
         if (Emulator.getConfig().getBoolean("hotel.calendar.enabled")) {
             String campaignName = Emulator.getConfig().getValue("hotel.calendar.default");
 
-            if(params.length > 1 && gameClient.getHabbo().hasPermission("cmd_calendar_staff")) {
+            if (params.length > 1 && gameClient.getHabbo().hasPermission("cmd_calendar_staff")) {
                 campaignName = params[1];
             }
+
             CalendarCampaign campaign = Emulator.getGameEnvironment().getCalendarManager().getCalendarCampaign(campaignName);
-            if(campaign == null) return false;
-                int daysBetween = (int) DAYS.between(new Timestamp(campaign.getStartTimestamp() * 1000L).toInstant(), new Date().toInstant());
-            if(daysBetween >= 0) {
-                gameClient.sendResponse(new AdventCalendarDataComposer(campaign.getName(), campaign.getImage(), campaign.getTotalDays(), daysBetween, gameClient.getHabbo().getHabboStats().calendarRewardsClaimed, campaign.getLockExpired()));
+
+            if (campaign == null) return false;
+
+            int daysBetween = (int) DAYS.between(new Timestamp(campaign.getStartTimestamp() * 1000L).toInstant(), new Date().toInstant());
+
+            if (daysBetween >= 0) {
+                gameClient.sendResponse(new CampaignCalendarDataMessageComposer(campaign.getName(), campaign.getImage(), campaign.getTotalDays(), daysBetween, gameClient.getHabbo().getHabboStats().calendarRewardsClaimed, campaign.getLockExpired()));
+                gameClient.sendResponse(new InClientLinkMessageComposer("openView/calendar"));
             }
         }
 

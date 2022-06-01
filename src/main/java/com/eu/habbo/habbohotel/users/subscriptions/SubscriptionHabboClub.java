@@ -10,9 +10,9 @@ import com.eu.habbo.habbohotel.users.Habbo;
 import com.eu.habbo.habbohotel.users.HabboInfo;
 import com.eu.habbo.habbohotel.users.HabboStats;
 import com.eu.habbo.habbohotel.users.clothingvalidation.ClothingValidationManager;
-import com.eu.habbo.messages.outgoing.catalog.ClubCenterDataComposer;
-import com.eu.habbo.messages.outgoing.generic.PickMonthlyClubGiftNotificationComposer;
-import com.eu.habbo.messages.outgoing.rooms.users.RoomUserDataComposer;
+import com.eu.habbo.messages.outgoing.catalog.ScrSendKickbackInfoMessageComposer;
+import com.eu.habbo.messages.outgoing.generic.ClubGiftNotificationComposer;
+import com.eu.habbo.messages.outgoing.rooms.users.UserChangeMessageComposer;
 import com.eu.habbo.messages.outgoing.users.*;
 import gnu.trove.map.hash.THashMap;
 import org.slf4j.Logger;
@@ -84,17 +84,17 @@ public class SubscriptionHabboClub extends Subscription {
         if (habbo != null && habbo.getClient() != null) {
 
             if (habbo.getHabboStats().getRemainingClubGifts() > 0) {
-                habbo.getClient().sendResponse(new PickMonthlyClubGiftNotificationComposer(habbo.getHabboStats().getRemainingClubGifts()));
+                habbo.getClient().sendResponse(new ClubGiftNotificationComposer(habbo.getHabboStats().getRemainingClubGifts()));
             }
 
             if ((Emulator.getIntUnixTimestamp() - habbo.getHabboStats().hcMessageLastModified) < 60) {
                 Emulator.getThreading().run(() -> {
-                    habbo.getClient().sendResponse(new UserClubComposer(habbo));
-                    habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
+                    habbo.getClient().sendResponse(new ScrSendUserInfoComposer(habbo));
+                    habbo.getClient().sendResponse(new UserRightsMessageComposer(habbo));
                 }, (Emulator.getIntUnixTimestamp() - habbo.getHabboStats().hcMessageLastModified));
             } else {
-                habbo.getClient().sendResponse(new UserClubComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, UserClubComposer.RESPONSE_TYPE_NORMAL));
-                habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
+                habbo.getClient().sendResponse(new ScrSendUserInfoComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, ScrSendUserInfoComposer.RESPONSE_TYPE_NORMAL));
+                habbo.getClient().sendResponse(new UserRightsMessageComposer(habbo));
             }
         }
     }
@@ -112,8 +112,8 @@ public class SubscriptionHabboClub extends Subscription {
         if (amount < 0) {
             Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId());
             if (habbo != null && habbo.getClient() != null) {
-                habbo.getClient().sendResponse(new UserClubComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, UserClubComposer.RESPONSE_TYPE_NORMAL));
-                habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
+                habbo.getClient().sendResponse(new ScrSendUserInfoComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, ScrSendUserInfoComposer.RESPONSE_TYPE_NORMAL));
+                habbo.getClient().sendResponse(new UserRightsMessageComposer(habbo));
             }
         }
     }
@@ -131,8 +131,8 @@ public class SubscriptionHabboClub extends Subscription {
         Habbo habbo = Emulator.getGameEnvironment().getHabboManager().getHabbo(this.getUserId());
 
         if (habbo != null && habbo.getClient() != null) {
-            habbo.getClient().sendResponse(new UserClubComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, UserClubComposer.RESPONSE_TYPE_NORMAL));
-            habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
+            habbo.getClient().sendResponse(new ScrSendUserInfoComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, ScrSendUserInfoComposer.RESPONSE_TYPE_NORMAL));
+            habbo.getClient().sendResponse(new UserRightsMessageComposer(habbo));
         }
     }
 
@@ -161,17 +161,17 @@ public class SubscriptionHabboClub extends Subscription {
             Emulator.getThreading().run(habbo.getHabboInfo());
 
             if (habbo.getClient() != null) {
-                habbo.getClient().sendResponse(new UpdateUserLookComposer(habbo));
+                habbo.getClient().sendResponse(new FigureUpdateComposer(habbo));
             }
 
             if (habbo.getHabboInfo().getCurrentRoom() != null) {
-                habbo.getHabboInfo().getCurrentRoom().sendComposer(new RoomUserDataComposer(habbo).compose());
+                habbo.getHabboInfo().getCurrentRoom().sendComposer(new UserChangeMessageComposer(habbo).compose());
             }
         }
 
         if (habbo != null && habbo.getClient() != null) {
-            habbo.getClient().sendResponse(new UserClubComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, UserClubComposer.RESPONSE_TYPE_NORMAL));
-            habbo.getClient().sendResponse(new UserPermissionsComposer(habbo));
+            habbo.getClient().sendResponse(new ScrSendUserInfoComposer(habbo, SubscriptionHabboClub.HABBO_CLUB, ScrSendUserInfoComposer.RESPONSE_TYPE_NORMAL));
+            habbo.getClient().sendResponse(new UserRightsMessageComposer(habbo));
         }
     }
 
@@ -181,7 +181,7 @@ public class SubscriptionHabboClub extends Subscription {
      * @param habbo User to calculate for
      * @return ClubCenterDataComposer
      */
-    public static ClubCenterDataComposer calculatePayday(HabboInfo habbo) {
+    public static ScrSendKickbackInfoMessageComposer calculatePayday(HabboInfo habbo) {
         Subscription activeSub = null;
         Subscription firstEverSub = null;
         int currentHcStreak = 0;
@@ -238,7 +238,7 @@ public class SubscriptionHabboClub extends Subscription {
             timeUntilPayday = (HC_PAYDAY_NEXT_DATE - Emulator.getIntUnixTimestamp()) / 60;
         }
 
-        return new ClubCenterDataComposer(
+        return new ScrSendKickbackInfoMessageComposer(
                 currentHcStreak,
                 (firstEverSub != null ? new SimpleDateFormat("dd-MM-yyyy").format(new Date(firstEverSub.getTimestampStart() * 1000L)) : ""),
                 HC_PAYDAY_KICKBACK_PERCENTAGE,
@@ -269,7 +269,7 @@ public class SubscriptionHabboClub extends Subscription {
                         int userId = set.getInt("user_id");
                         HabboInfo habboInfo = Emulator.getGameEnvironment().getHabboManager().getHabboInfo(userId);
                         HabboStats stats = habboInfo.getHabboStats();
-                        ClubCenterDataComposer calculated = calculatePayday(habboInfo);
+                        ScrSendKickbackInfoMessageComposer calculated = calculatePayday(habboInfo);
                         int totalReward = (calculated.creditRewardForMonthlySpent + calculated.creditRewardForStreakBonus);
                         if (totalReward > 0) {
                             boolean claimed = claimPayDay(Emulator.getGameEnvironment().getHabboManager().getHabbo(userId), totalReward, HC_PAYDAY_CURRENCY);
@@ -318,7 +318,7 @@ public class SubscriptionHabboClub extends Subscription {
         progressAchievement(habbo.getHabboInfo());
 
         if (habbo.getHabboStats().getRemainingClubGifts() > 0) {
-            habbo.getClient().sendResponse(new PickMonthlyClubGiftNotificationComposer(habbo.getHabboStats().getRemainingClubGifts()));
+            habbo.getClient().sendResponse(new ClubGiftNotificationComposer(habbo.getHabboStats().getRemainingClubGifts()));
         }
 
         try (Connection connection = Emulator.getDatabase().getDataSource().getConnection();
@@ -376,14 +376,14 @@ public class SubscriptionHabboClub extends Subscription {
             case "credit":
             case "coin":
                 habbo.getClient().getHabbo().getHabboInfo().addCredits(amount);
-                habbo.getClient().sendResponse(new UserCreditsComposer(habbo.getClient().getHabbo()));
+                habbo.getClient().sendResponse(new CreditBalanceComposer(habbo.getClient().getHabbo()));
                 break;
 
             case "diamonds":
             case "diamond":
                 pointCurrency = 5;
                 habbo.getClient().getHabbo().getHabboInfo().addCurrencyAmount(pointCurrency, amount);
-                habbo.getClient().sendResponse(new UserPointsComposer(habbo.getClient().getHabbo().getHabboInfo().getCurrencyAmount(pointCurrency), amount, pointCurrency));
+                habbo.getClient().sendResponse(new HabboActivityPointNotificationMessageComposer(habbo.getClient().getHabbo().getHabboInfo().getCurrencyAmount(pointCurrency), amount, pointCurrency));
                 break;
 
             case "duckets":
@@ -392,7 +392,7 @@ public class SubscriptionHabboClub extends Subscription {
             case "pixel":
                 pointCurrency = 0;
                 habbo.getClient().getHabbo().getHabboInfo().addCurrencyAmount(pointCurrency, amount);
-                habbo.getClient().sendResponse(new UserPointsComposer(habbo.getClient().getHabbo().getHabboInfo().getCurrencyAmount(pointCurrency), amount, pointCurrency));
+                habbo.getClient().sendResponse(new HabboActivityPointNotificationMessageComposer(habbo.getClient().getHabbo().getHabboInfo().getCurrencyAmount(pointCurrency), amount, pointCurrency));
                 break;
 
             default:
@@ -406,7 +406,7 @@ public class SubscriptionHabboClub extends Subscription {
 
                 if (pointCurrency >= 0) {
                     habbo.getClient().getHabbo().getHabboInfo().addCurrencyAmount(pointCurrency, amount);
-                    habbo.getClient().sendResponse(new UserPointsComposer(habbo.getClient().getHabbo().getHabboInfo().getCurrencyAmount(pointCurrency), amount, pointCurrency));
+                    habbo.getClient().sendResponse(new HabboActivityPointNotificationMessageComposer(habbo.getClient().getHabbo().getHabboInfo().getCurrencyAmount(pointCurrency), amount, pointCurrency));
                 }
                 break;
         }

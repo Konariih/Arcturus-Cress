@@ -48,17 +48,20 @@ public class InteractionWater extends InteractionDefault {
         for (Habbo habbo : room.getHabbosOnItem(this)) {
             try {
                 this.onWalkOff(habbo.getRoomUnit(), room, empty);
-            } catch (Exception e) {
-
-            }
+            } catch (Exception ignored) {}
         }
 
         for (Bot bot : room.getBotsOnItem(this)) {
             try {
                 this.onWalkOff(bot.getRoomUnit(), room, empty);
-            } catch (Exception e) {
-            }
+            } catch (Exception ignored) {}
         }
+        for (Pet pet : room.getPetsOnItem(this)) {
+            try {
+                this.onWalkOff(pet.getRoomUnit(), room, empty);
+            } catch (Exception ignored) {}
+        }
+
     }
 
     @Override
@@ -72,9 +75,12 @@ public class InteractionWater extends InteractionDefault {
     public void onWalkOn(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
         super.onWalkOn(roomUnit, room, objects);
 
+        if(roomUnit == null) return;
+        roomUnit.isSwimming = true;
+
         Pet pet = room.getPet(roomUnit);
 
-        if(pet == null)
+        if (pet == null)
             return;
 
         if (!pet.getRoomUnit().hasStatus(RoomUnitStatus.SWIM) && pet.getPetData().canSwim) {
@@ -84,12 +90,14 @@ public class InteractionWater extends InteractionDefault {
 
     @Override
     public void onWalkOff(RoomUnit roomUnit, Room room, Object[] objects) throws Exception {
+        roomUnit.isSwimming = false;
+
         super.onWalkOff(roomUnit, room, objects);
 
-        Pet pet = room.getPet(roomUnit);
+        if ( roomUnit.getRoomUnitType() != RoomUnitType.PET) return;
+            Pet pet = room.getPet(roomUnit);
 
-        if(pet == null)
-            return;
+            if (pet == null) return;
 
         pet.getRoomUnit().removeStatus(RoomUnitStatus.SWIM);
     }
@@ -108,9 +116,8 @@ public class InteractionWater extends InteractionDefault {
     public boolean canStackAt(Room room, List<Pair<RoomTile, THashSet<HabboItem>>> itemsAtLocation) {
         for (Pair<RoomTile, THashSet<HabboItem>> set : itemsAtLocation) {
             for (HabboItem item : set.getValue()) {
-                if (!(item instanceof InteractionWater)) {
-                    return false;
-                }
+                if(item != this)
+                return false;
             }
         }
 
